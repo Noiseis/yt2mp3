@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube to MP3 Extractor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 YouTube to MP3 Extractor</h1>
+    <input type="text" id="urlInput" placeholder="Paste YouTube link or playlist..." required>
+    <button onclick="extractMP3()">Extract MP3</button>
+    <p id="status"></p>
+  </div>
+  
+  <footer>
+    <p>© 2025 Carnage Sentinels</p>
+  </footer>
+
+  <script>
+    async function extractMP3() {
+      const url = document.getElementById("urlInput").value.trim();
+      const status = document.getElementById("status");
+
+      if (!url) {
+        status.textContent = "⚠️ Please paste a valid YouTube URL.";
+        return;
+      }
+
+      status.textContent = "⏳ Processing... Please wait.";
+
+      try {
+        
+        //------------------------------------------------------------------------------------------------------------
+        // CHANGE THIS to your Render/Heroku backend URL
+        const backendUrl = "https://your-backend.onrender.com/download";   // CHANGE THIS to your Render/Heroku backend URL
+        //------------------------------------------------------------------------------------------------------------
+
+        const response = await fetch(backendUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to process video. Try again.");
+        }
+
+        // Trigger file download
+        const blob = await response.blob();
+        const link = document.createElement("a");
+        link.href = window.URL.createObjectURL(blob);
+        link.download = "audio.mp3";
+        link.click();
+
+        status.textContent = "✅ Download complete!";
+      } catch (err) {
+        status.textContent = "❌ Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
