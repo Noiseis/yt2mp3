@@ -3,7 +3,7 @@ services:
     name: youtube-mp3-backend
     env: python
     plan: free
-    region: oregon   # or frankfurt if you're closer to Europe/India
+    region: oregon
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python backend.py"
     autoDeploy: true
