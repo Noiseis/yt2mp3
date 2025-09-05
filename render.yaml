@@ -1,12 +1,8 @@
 services:
   - type: web
     name: youtube-mp3-backend
-    env: python
     plan: free
+    env: docker
     region: oregon
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python backend.py"
+    dockerfilePath: ./Dockerfile
     autoDeploy: true
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.6
