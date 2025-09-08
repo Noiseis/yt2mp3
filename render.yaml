@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: youtube-mp3-backend
-    plan: free
-    env: docker
-    region: oregon
-    dockerfilePath: ./Dockerfile
-    autoDeploy: true

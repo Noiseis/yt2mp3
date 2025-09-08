@@ -1,65 +1,283 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>YouTube to MP3 Extractor</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="toastNotification"></div>
+
   <div class="container">
     <h1>🚀 YouTube to MP3 Extractor</h1>
-    <input type="text" id="urlInput" placeholder="Paste YouTube link or playlist..." required>
-    <button onclick="extractMP3()">Extract MP3</button>
+    <div class="input-container">
+      <input type="text" id="urlInput" placeholder="Paste YouTube link..." required />
+      <button onclick="fetchVideoInfo()">Extract</button>
+    </div>
+    
     <p id="status"></p>
+
+    <div id="detailsContainer">
+        <img id="thumbnail" src="" alt="Video Thumbnail">
+        <div class="info">
+            <h3 id="videoTitle"></h3>
+            <p id="videoArtist"></p>
+            <div id="qualityButtons"></div>
+            <button id="downloadButton" onclick="startDownload()">Download</button>
+        </div>
+    </div>
+    
+    <div id="libraryContainer">
+        <h3>My Downloads</h3>
+        <hr>
+        <div id="downloadsList">
+            </div>
+    </div>
   </div>
-  
+
   <footer>
     <p>© 2025 Carnage Sentinels</p>
   </footer>
 
   <script>
-    async function extractMP3() {
-      const url = document.getElementById("urlInput").value.trim();
-      const status = document.getElementById("status");
+    let currentVideoData = {};
+    let currentlyPlayingAudio = null;
+    let selectedFormatId = null;
+    let toastTimeout;
+
+    // --- Toast Notification Function ---
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toastNotification');
+        toast.textContent = message;
+        toast.className = '';
+        toast.classList.add(type, 'show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 5000);
+    }
+
+    function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    window.onload = async function() {
+        try {
+            const response = await fetch('/list-downloads');
+            const downloads = await response.json();
+            const downloadsList = document.getElementById('downloadsList');
+            downloadsList.innerHTML = '';
+            if (downloads.length === 0) {
+                downloadsList.innerHTML = '<p>No downloaded files yet.</p>';
+                return;
+            }
+            downloads.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'download-item';
+                const playerId = `player-${index}`;
+                itemDiv.innerHTML = `
+                    <img src="${item.thumbnail}" alt="thumbnail" class="thumbnail-small">
+                    <div class="item-info">
+                        <strong>${item.title}</strong>
+                        <p>${item.artist}</p>
+                        <div class="custom-audio-player" id="${playerId}">
+                            <audio src="/play/${item.mp3_file}" preload="metadata"></audio>
+                            <button class="play-pause-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="play-icon"><path d="M8 5v14l11-7z"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="pause-icon" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            </button>
+                            <span class="time-current">0:00</span>
+                            <input type="range" class="progress-bar" value="0" max="100">
+                            <span class="time-duration">0:00</span>
+                        </div>
+                    </div>
+                    <div class="item-controls">
+                        <button onclick="deleteFile(this, '${item.mp3_file}')">Delete</button>
+                    </div>
+                `;
+                downloadsList.appendChild(itemDiv);
+                initializePlayer(playerId);
+            });
+        } catch (error) {
+            console.error("Could not load downloads library:", error);
+            document.getElementById('downloadsList').innerHTML = '<p>Error loading downloads.</p>';
+        }
+    };
+    
+    function initializePlayer(playerId) {
+        const player = document.getElementById(playerId);
+        const audio = player.querySelector('audio');
+        const playPauseBtn = player.querySelector('.play-pause-btn');
+        const playIcon = player.querySelector('.play-icon');
+        const pauseIcon = player.querySelector('.pause-icon');
+        const progressBar = player.querySelector('.progress-bar');
+        const currentTimeEl = player.querySelector('.time-current');
+        const durationEl = player.querySelector('.time-duration');
+        playPauseBtn.addEventListener('click', () => {
+            if (audio.paused) {
+                if (currentlyPlayingAudio && currentlyPlayingAudio !== audio) {
+                    currentlyPlayingAudio.pause();
+                    const oldPlayer = currentlyPlayingAudio.closest('.custom-audio-player');
+                    oldPlayer.querySelector('.play-icon').style.display = 'block';
+                    oldPlayer.querySelector('.pause-icon').style.display = 'none';
+                }
+                audio.play();
+                currentlyPlayingAudio = audio;
+            } else {
+                audio.pause();
+                currentlyPlayingAudio = null;
+            }
+        });
+        audio.addEventListener('play', () => { playIcon.style.display = 'none'; pauseIcon.style.display = 'block'; });
+        audio.addEventListener('pause', () => { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; });
+        audio.addEventListener('loadedmetadata', () => { progressBar.max = audio.duration; durationEl.textContent = formatTime(audio.duration); });
+        audio.addEventListener('timeupdate', () => { progressBar.value = audio.currentTime; currentTimeEl.textContent = formatTime(audio.currentTime); });
+        progressBar.addEventListener('input', () => { audio.currentTime = progressBar.value; });
+        audio.addEventListener('ended', () => { currentlyPlayingAudio = null; });
+    }
+
+    async function deleteFile(buttonElement, mp3_file) {
+        if (!confirm(`Are you sure you want to delete this file?`)) {
+            return;
+        }
+        try {
+            const response = await fetch('/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mp3_file: mp3_file })
+            });
+            if (!response.ok) {
+                throw new Error("Server failed to delete the file.");
+            }
+            buttonElement.closest('.download-item').remove();
+            if (document.getElementById('downloadsList').children.length === 0) {
+                document.getElementById('downloadsList').innerHTML = '<p>No downloaded files yet.</p>';
+            }
+        } catch (error) {
+            alert("Error: " + error.message);
+        }
+    }
+    
+    async function fetchVideoInfo() {
+      const urlInput = document.getElementById("urlInput");
+      const url = urlInput.value.trim();
+      const detailsContainer = document.getElementById("detailsContainer");
 
       if (!url) {
-        status.textContent = "⚠️ Please paste a valid YouTube URL.";
+        showToast("⚠️ Please paste a valid YouTube URL.", "error");
         return;
       }
-
-      status.textContent = "⏳ Processing... Please wait.";
+      
+      detailsContainer.style.display = 'none';
+      showToast("⏳ Fetching video details...");
 
       try {
-        
-        //------------------------------------------------------------------------------------------------------------
-        // CHANGE THIS to your Render/Heroku backend URL
-        const backendUrl = "https://yt2mp3-8diu.onrender.com";   // CHANGE THIS to your Render/Heroku backend URL
-        //------------------------------------------------------------------------------------------------------------
-
-        const response = await fetch(backendUrl, {
+        const response = await fetch('/get-info', {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url })
         });
+        if (!response.ok) throw new Error("Failed to fetch video info.");
 
-        if (!response.ok) {
-          throw new Error("Failed to process video. Try again.");
+        const data = await response.json();
+        currentVideoData = data;
+        
+        document.getElementById('thumbnail').src = data.thumbnail;
+        document.getElementById('videoTitle').textContent = data.title;
+        document.getElementById('videoArtist').textContent = data.artist;
+
+        const qualityButtonsContainer = document.getElementById('qualityButtons');
+        qualityButtonsContainer.innerHTML = ''; // Clear previous buttons
+
+        data.audio_formats.forEach((format, index) => {
+            if (index === 0) selectedFormatId = format.format_id;
+            
+            const button = document.createElement('button');
+            button.className = `quality-button ${index === 0 ? 'selected' : ''}`;
+            button.dataset.formatId = format.format_id;
+            button.textContent = `${format.quality} (${format.ext})`;
+            button.onclick = () => selectQuality(button);
+            
+            qualityButtonsContainer.appendChild(button);
+        });
+        
+        detailsContainer.style.display = "flex";
+
+      } catch (err) {
+        showToast("❌ Error: " + err.message, "error");
+      }
+    }
+    
+    function selectQuality(buttonElement) {
+        const buttons = document.querySelectorAll('.quality-button');
+        buttons.forEach(btn => btn.classList.remove('selected'));
+        buttonElement.classList.add('selected');
+        selectedFormatId = buttonElement.dataset.formatId;
+    }
+
+    async function startDownload() {
+        const url = document.getElementById("urlInput").value.trim();
+        const downloadButton = document.getElementById('downloadButton');
+        const detailsContainer = document.getElementById('detailsContainer');
+
+        if (!url || !selectedFormatId) {
+            showToast("⚠️ Could not start download. Please select a quality.", "error");
+            return;
         }
 
-        // Trigger file download
-        const blob = await response.blob();
-        const link = document.createElement("a");
-        link.href = window.URL.createObjectURL(blob);
-        link.download = "audio.mp3";
-        link.click();
+        downloadButton.disabled = true;
+        downloadButton.classList.add('loading');
+        downloadButton.innerHTML = `<div class="progress-inner"></div><span class="progress-text">Downloading...</span>`;
 
-        status.textContent = "✅ Download complete!";
-      } catch (err) {
-        status.textContent = "❌ Error: " + err.message;
-      }
+        try {
+            const response = await fetch('/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    url: url, 
+                    format_id: selectedFormatId,
+                    metadata: {
+                        title: currentVideoData.title,
+                        artist: currentVideoData.artist,
+                        thumbnail: currentVideoData.thumbnail
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.details || "Download failed on the server.");
+            }
+            
+            const blob = await response.blob();
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            const contentDisposition = response.headers.get('content-disposition');
+            let filename = "audio.mp3";
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                if (filenameMatch.length > 1) filename = filenameMatch[1];
+            }
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            
+            showToast("✅ Download complete!", "success");
+            window.onload();
+            downloadButton.innerHTML = 'Download';
+            document.getElementById("urlInput").value = "";
+            detailsContainer.style.display = 'none';
+
+        } catch (err) {
+            showToast("❌ Error: " + err.message, "error");
+            downloadButton.disabled = false;
+            downloadButton.classList.remove('loading');
+            downloadButton.innerHTML = 'Download';
+        }
     }
   </script>
 </body>
 </html>
-
-

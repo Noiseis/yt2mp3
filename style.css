@@ -1,70 +1,397 @@
+/* General Body and Background */
 body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
-  height: 100vh;
-  font-family: 'Montserrat', sans-serif;
-  color: #fff;
+  display: flex;
+  flex-direction: column; /* This is key for the footer layout */
+  align-items: center;    /* This centers the container */
+  min-height: 100vh;
   background: radial-gradient(circle at bottom, #0d0d2b, #000000 90%);
-  overflow: hidden;
+  color: #E0E0E0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Hides scrollbar for Firefox */
 }
 
-.container {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-  padding-top: 15%;
+/* Hides scrollbar for Chrome, Safari, and Edge */
+body::-webkit-scrollbar {
+  display: none;
 }
 
-h1 {
-  font-size: 2.5rem;
-  margin-bottom: 20px;
-}
-
-input {
-  padding: 10px;
-  width: 60%;
-  border-radius: 25px;
-  border: none;
-  outline: none;
-  font-size: 1rem;
-  margin-right: 10px;
-}
-
-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 25px;
-  background: linear-gradient(90deg, #ff00ff, #00ffff);
-  color: #fff;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: 0.3s ease;
-}
-
-button:hover {
-  background: linear-gradient(90deg, #00ffff, #ff00ff);
-  transform: scale(1.05);
-}
-
-footer {
-  position: absolute;
-  bottom: 10px;
-  width: 100%;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #aaa;
-}
-
-/* 🌌 Space animation */
-body::before, body::after {
+/* Stardust Animation */
+body::before {
   content: "";
-  position: absolute;
+  position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
   background: transparent url("https://www.transparenttextures.com/patterns/stardust.png") repeat;
   animation: spaceMove 200s linear infinite;
   opacity: 0.6;
+  z-index: -1;
 }
 
 @keyframes spaceMove {
   from { background-position: 0 0; }
   to { background-position: 10000px 5000px; }
+}
+
+/* Toast Notification Styling */
+#toastNotification {
+    position: fixed;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 25px;
+    border-radius: 10px;
+    background-color: #333;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    font-size: 1rem;
+    transition: top 0.5s ease-in-out;
+}
+#toastNotification.show {
+    top: 20px;
+}
+#toastNotification.success {
+    background-color: #2E7D32;
+}
+#toastNotification.error {
+    background-color: #C62828;
+}
+
+/* Main Container */
+.container {
+  width: 90%;
+  max-width: 800px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  margin-top: 50px; /* Add space from the top */
+  margin-bottom: 20px; /* Add space before the footer */
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+  color: #FFF;
+  text-shadow: 0 0 10px rgba(248, 248, 248, 0.6);
+}
+
+/* Input and Button Styling */
+.input-container {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+input[type="text"] {
+  flex-grow: 1;
+  padding: 12px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #FFF;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+input[type="text"]:focus {
+  border-color: #4D9DE0;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+button {
+  padding: 12px 25px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #E0E0E0;
+  box-shadow: none;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: #fcfcfc88;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+
+/* Status Messages (No longer visible) */
+#status {
+  display: none;
+}
+
+/* Video Details Container */
+#detailsContainer {
+  display: none;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 30px;
+  text-align: left;
+  gap: 20px;
+  align-items: center;
+}
+
+#detailsContainer img {
+  width: 150px;
+  height: 150px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+#detailsContainer .info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#detailsContainer h3 {
+  font-size: 1.5rem;
+  margin: 0 0 5px 0;
+  color: #FFF;
+}
+
+#detailsContainer p {
+  font-size: 1rem;
+  color: #B0B0B0;
+  margin: 0 0 20px 0;
+}
+
+#downloadButton {
+    margin-top: 20px;
+    width: 100%;
+    font-size: 1.2rem;
+    padding: 15px;
+    height: 53px;
+    box-sizing: border-box;
+}
+
+/* Quality Buttons */
+#qualityButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.quality-button {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    font-weight: normal;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.quality-button.selected {
+    background-color: #d8d8d8ad;
+    border-color: #ebebeb;
+    color: #000000fd;
+    box-shadow: 0 0 10px rgba(77, 157, 224, 0.5);
+}
+
+
+/* Downloads Library */
+#libraryContainer {
+  margin-top: 50px;
+  text-align: left;
+}
+
+#libraryContainer h2 {
+  font-size: 1.8rem;
+  color: #FFF;
+  margin-bottom: 25px;
+  padding-left: 10px;
+}
+
+#downloadsList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.download-item {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 12px 15px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.download-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-3px);
+}
+
+.thumbnail-small {
+  width: 80px;
+  height: 54px;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex-grow: 1;
+  text-align: left;
+  padding-right: 15px;
+}
+
+.item-info strong {
+  display: block;
+  font-size: 1rem;
+  color: #FFF;
+  margin-bottom: 2px;
+}
+
+.item-info p {
+  font-size: 0.8rem;
+  color: #B0B0B0;
+  margin: 0;
+}
+
+.item-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.item-controls button {
+  padding: 8px 18px;
+  font-size: 0.9rem;
+}
+
+/* Custom Audio Player */
+.custom-audio-player {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.play-pause-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    color: #E0E0E0;
+    flex-shrink: 0;
+}
+.play-pause-btn:hover {
+    color: #4D9DE0;
+    transform: none;
+}
+.play-pause-btn svg {
+    width: 100%;
+    height: 100%;
+}
+
+.time-current, .time-duration {
+    font-size: 0.85rem;
+    color: #B0B0B0;
+    min-width: 40px;
+    text-align: center;
+}
+
+.progress-bar {
+    flex-grow: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    outline: none;
+    cursor: pointer;
+}
+.progress-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #E0E0E0;
+    border-radius: 50%;
+    transition: background 0.2s ease;
+}
+.progress-bar:hover::-webkit-slider-thumb {
+    background: #FFF;
+}
+.progress-bar::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #E0E0E0;
+    border-radius: 50%;
+    border: none;
+    transition: background 0.2s ease;
+}
+.progress-bar:hover::-moz-range-thumb {
+    background: #FFF;
+}
+/* Progress Bar Transformation */
+#downloadButton.loading {
+    padding: 0;
+    overflow: hidden;
+    cursor: not-allowed;
+    position: relative;
+    height: 53px;
+    box-sizing: border-box;
+}
+
+#downloadButton.loading .progress-text {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    z-index: 2;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.progress-inner {
+    height: 100%;
+    width: 100%;
+    border-radius: 10px;
+    background-size: 200% 200%;
+    animation: progress-animation 2s linear infinite;
+    z-index: 1;
+
+}
+
+@keyframes progress-animation {
+    0% { background-position: 0% 50%; }
+    100% { background-position: -200% 50%; }
+
+} 
+
+/* --- CORRECTED Footer Styling --- */
+footer {
+  width: 100%;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #aaa;
+  padding: 20px 0; /* Gives it some space from the content above */
+  flex-shrink: 0; /* Prevents the footer from shrinking */
+  margin-top: auto; /* This is the key to pushing it to the bottom */
 }
