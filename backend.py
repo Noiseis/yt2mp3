@@ -41,7 +41,10 @@ def get_info():
     video_url = request.json.get("url")
     if not video_url:
         return jsonify({"error": "URL is required"}), 400
-    ydl_opts = {'quiet': True}
+    ydl_opts = {
+        'quiet': True,
+        'cookiefile': 'cookies.txt'  # Add this line to use the cookie file
+    }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=False)
