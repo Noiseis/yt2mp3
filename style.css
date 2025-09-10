@@ -3,17 +3,16 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
   display: flex;
-  flex-direction: column; /* This is key for the footer layout */
-  align-items: center;    /* This centers the container */
+  flex-direction: column;
+  align-items: center;
   min-height: 100vh;
   background: radial-gradient(circle at bottom, #0d0d2b, #000000 90%);
   color: #E0E0E0;
   box-sizing: border-box;
   overflow-x: hidden;
-  scrollbar-width: none; /* Hides scrollbar for Firefox */
+  scrollbar-width: none;
 }
 
-/* Hides scrollbar for Chrome, Safari, and Edge */
 body::-webkit-scrollbar {
   display: none;
 }
@@ -49,27 +48,21 @@ body::before {
     font-size: 1rem;
     transition: top 0.5s ease-in-out;
 }
-#toastNotification.show {
-    top: 20px;
-}
-#toastNotification.success {
-    background-color: #2E7D32;
-}
-#toastNotification.error {
-    background-color: #C62828;
-}
+#toastNotification.show { top: 20px; }
+#toastNotification.success { background-color: #2E7D32; }
+#toastNotification.error { background-color: #C62828; }
 
 /* Main Container */
 .container {
   width: 90%;
-  max-width: 800px;
+  max-width: 1100px;
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   padding: 30px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   text-align: center;
-  margin-top: 50px; /* Add space from the top */
-  margin-bottom: 20px; /* Add space before the footer */
+  margin-top: 50px;
+  margin-bottom: 20px;
 }
 
 h1 {
@@ -128,15 +121,14 @@ button:active {
   transform: translateY(0);
 }
 
-
-/* Status Messages (No longer visible) */
+/* Status Messages (Hidden) */
 #status {
   display: none;
 }
 
 /* Video Details Container */
 #detailsContainer {
-  display: none;
+  display: none; /* Initially hidden */
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 15px;
@@ -174,6 +166,83 @@ button:active {
   margin: 0 0 20px 0;
 }
 
+/* Skeleton Loader Styles */
+@keyframes shimmer {
+    0% { background-position: -800px 0; }
+    100% { background-position: 800px 0; }
+}
+
+.skeleton {
+    background-color: rgba(255, 255, 255, 0.1);
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.15) 20%, rgba(255, 255, 255, 0.1) 40%, rgba(255, 255, 255, 0.1) 100%);
+    background-repeat: no-repeat;
+    background-size: 800px 150px;
+    animation: shimmer 2s infinite linear;
+    border-radius: 10px;
+}
+
+.skeleton-thumbnail {
+    width: 150px;
+    height: 150px;
+    flex-shrink: 0;
+}
+
+.skeleton-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.skeleton-text {
+    height: 24px;
+    width: 80%;
+}
+.skeleton-text.short {
+    width: 50%;
+    height: 18px;
+}
+.skeleton-buttons {
+    height: 38px;
+    width: 100%;
+}
+
+/* Details Content */
+#detailsContent {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    width: 100%;
+}
+
+#detailsContent img {
+  width: 150px;
+  height: 150px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+#detailsContent .info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#detailsContent h3 {
+  font-size: 1.5rem;
+  margin: 0 0 5px 0;
+  color: #FFF;
+}
+
+#detailsContent p {
+  font-size: 1rem;
+  color: #B0B0B0;
+  margin: 0 0 20px 0;
+}
+
+/* Download Button */
 #downloadButton {
     margin-top: 20px;
     width: 100%;
@@ -205,6 +274,24 @@ button:active {
     box-shadow: 0 0 10px rgba(77, 157, 224, 0.5);
 }
 
+/* Preview Button */
+#previewButton {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px;
+    font-size: 1.1rem;
+}
+
+/* Footer Styling */
+footer {
+  width: 100%;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #aaa;
+  padding: 20px 0;
+  flex-shrink: 0;
+  margin-top: auto;
+}
 
 /* Downloads Library */
 #libraryContainer {
@@ -241,8 +328,8 @@ button:active {
 }
 
 .thumbnail-small {
-  width: 80px;
-  height: 54px;
+  width: 150px;
+  height: 90px;
   border-radius: 8px;
   object-fit: cover;
   margin-right: 15px;
@@ -301,7 +388,6 @@ button:active {
 }
 .play-pause-btn:hover {
     color: #4D9DE0;
-    transform: none;
 }
 .play-pause-btn svg {
     width: 100%;
@@ -315,6 +401,7 @@ button:active {
     text-align: center;
 }
 
+/* Progress Bar Styling */
 .progress-bar {
     flex-grow: 1;
     -webkit-appearance: none;
@@ -349,8 +436,9 @@ button:active {
 .progress-bar:hover::-moz-range-thumb {
     background: #FFF;
 }
-/* Progress Bar Transformation */
-#downloadButton.loading {
+
+/* Preview Button Loading State */
+#previewButton.loading {
     padding: 0;
     overflow: hidden;
     cursor: not-allowed;
@@ -359,7 +447,7 @@ button:active {
     box-sizing: border-box;
 }
 
-#downloadButton.loading .progress-text {
+#previewButton.loading .progress-text {
     position: absolute;
     left: 50%;
     top: 50%;
@@ -373,25 +461,96 @@ button:active {
     height: 100%;
     width: 100%;
     border-radius: 10px;
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(77, 157, 224, 0.4),
+        rgba(77, 157, 224, 0.4) 10px,
+        rgba(77, 157, 224, 0.5) 10px,
+        rgba(77, 157, 224, 0.5) 20px
+    );
     background-size: 200% 200%;
     animation: progress-animation 2s linear infinite;
     z-index: 1;
-
 }
 
 @keyframes progress-animation {
     0% { background-position: 0% 50%; }
     100% { background-position: -200% 50%; }
+}
+/* Progress Bar Styling */
+/* Progress Bar Styling */
+.progress-container {
+    width: 100%;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+}
 
-} 
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background-color: rgba(255, 255, 255, 0.8);
+    transition: width 0.2s ease-out;
+}
 
-/* --- CORRECTED Footer Styling --- */
-footer {
-  width: 100%;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #aaa;
-  padding: 20px 0; /* Gives it some space from the content above */
-  flex-shrink: 0; /* Prevents the footer from shrinking */
-  margin-top: auto; /* This is the key to pushing it to the bottom */
+/* Fade-in and Fade-out animations */
+.fade-in {
+    animation: fadeIn 0.5s forwards;
+}
+
+.fade-out {
+    animation: fadeOut 0.5s forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Ensure previewButton loading state styling remains intact */
+#previewButton.loading {
+    position: relative;
+    cursor: not-allowed;
+}
+
+#previewButton.loading .progress-text {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .input-container {
+        flex-direction: column;
+    }
+    input[type="text"], button {
+        width: 100%;
+    }
+    #downloadsList {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.8rem;
+    }
+    #detailsContent {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+.container, .download-item, .input-container, button {
+    transition: all 0.3s ease;
 }

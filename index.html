@@ -18,20 +18,34 @@
     <p id="status"></p>
 
     <div id="detailsContainer">
-        <img id="thumbnail" src="" alt="Video Thumbnail">
-        <div class="info">
-            <h3 id="videoTitle"></h3>
-            <p id="videoArtist"></p>
-            <div id="qualityButtons"></div>
-            <button id="downloadButton" onclick="startDownload()">Download</button>
+        <div id="skeletonLoader">
+            <div class="skeleton skeleton-thumbnail"></div>
+            <div class="skeleton-info">
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text short"></div>
+                <div class="skeleton skeleton-buttons"></div>
+            </div>
+        </div>
+        <div id="detailsContent" style="display: none;">
+            <img id="thumbnail" src="" alt="Video Thumbnail">
+            <div class="info">
+                <h3 id="videoTitle"></h3>
+                <p id="videoArtist"></p>
+                <div id="qualityButtons"></div>
+                <button id="previewButton" onclick="startPreview()">Preview</button>
+                <div id="progressContainer" class="progress-container" style="display: none;">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+            </div>
         </div>
     </div>
     
     <div id="libraryContainer">
-        <h3>My Downloads</h3>
+        <h3>Preview Library</h3>
         <hr>
         <div id="downloadsList">
-            </div>
+            <p>No previews loaded yet.</p>
+        </div>
     </div>
   </div>
 
@@ -40,12 +54,13 @@
   </footer>
 
   <script>
+    let previewLibrary = [];
     let currentVideoData = {};
     let currentlyPlayingAudio = null;
     let selectedFormatId = null;
     let toastTimeout;
+    let progressInterval;
 
-    // --- Toast Notification Function ---
     function showToast(message, type = 'info') {
         const toast = document.getElementById('toastNotification');
         toast.textContent = message;
@@ -63,48 +78,46 @@
         return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
     }
 
-    window.onload = async function() {
-        try {
-            const response = await fetch('/list-downloads');
-            const downloads = await response.json();
-            const downloadsList = document.getElementById('downloadsList');
-            downloadsList.innerHTML = '';
-            if (downloads.length === 0) {
-                downloadsList.innerHTML = '<p>No downloaded files yet.</p>';
-                return;
-            }
-            downloads.forEach((item, index) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'download-item';
-                const playerId = `player-${index}`;
-                itemDiv.innerHTML = `
-                    <img src="${item.thumbnail}" alt="thumbnail" class="thumbnail-small">
-                    <div class="item-info">
-                        <strong>${item.title}</strong>
-                        <p>${item.artist}</p>
-                        <div class="custom-audio-player" id="${playerId}">
-                            <audio src="/play/${item.mp3_file}" preload="metadata"></audio>
-                            <button class="play-pause-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="play-icon"><path d="M8 5v14l11-7z"/></svg>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="pause-icon" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                            </button>
-                            <span class="time-current">0:00</span>
-                            <input type="range" class="progress-bar" value="0" max="100">
-                            <span class="time-duration">0:00</span>
-                        </div>
-                    </div>
-                    <div class="item-controls">
-                        <button onclick="deleteFile(this, '${item.mp3_file}')">Delete</button>
-                    </div>
-                `;
-                downloadsList.appendChild(itemDiv);
-                initializePlayer(playerId);
-            });
-        } catch (error) {
-            console.error("Could not load downloads library:", error);
-            document.getElementById('downloadsList').innerHTML = '<p>Error loading downloads.</p>';
+    function renderPreviewLibrary() {
+        const downloadsList = document.getElementById('downloadsList');
+        downloadsList.innerHTML = '';
+
+        if (previewLibrary.length === 0) {
+            downloadsList.innerHTML = '<p>No previews loaded yet.</p>';
+            return;
         }
-    };
+
+        previewLibrary.forEach((item, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'download-item';
+            const playerId = `player-${index}`;
+            const audioBlobUrl = URL.createObjectURL(item.blob);
+
+            itemDiv.innerHTML = `
+                <img src="${item.metadata.thumbnail}" alt="thumbnail" class="thumbnail-small">
+                <div class="item-info">
+                    <strong>${item.metadata.title}</strong>
+                    <p>${item.metadata.artist}</p>
+                    <div class="custom-audio-player" id="${playerId}">
+                        <audio src="${audioBlobUrl}" preload="metadata"></audio>
+                        <button class="play-pause-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="play-icon"><path d="M8 5v14l11-7z"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="pause-icon" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        </button>
+                        <span class="time-current">0:00</span>
+                        <input type="range" class="progress-bar" value="0" max="100">
+                        <span class="time-duration">0:00</span>
+                    </div>
+                </div>
+                <div class="item-controls">
+                    <button onclick="downloadPreview(${index})">Download</button>
+                    <button onclick="deletePreview(${index})">Delete</button>
+                </div>
+            `;
+            downloadsList.appendChild(itemDiv);
+            initializePlayer(playerId);
+        });
+    }
     
     function initializePlayer(playerId) {
         const player = document.getElementById(playerId);
@@ -119,9 +132,6 @@
             if (audio.paused) {
                 if (currentlyPlayingAudio && currentlyPlayingAudio !== audio) {
                     currentlyPlayingAudio.pause();
-                    const oldPlayer = currentlyPlayingAudio.closest('.custom-audio-player');
-                    oldPlayer.querySelector('.play-icon').style.display = 'block';
-                    oldPlayer.querySelector('.pause-icon').style.display = 'none';
                 }
                 audio.play();
                 currentlyPlayingAudio = audio;
@@ -138,146 +148,169 @@
         audio.addEventListener('ended', () => { currentlyPlayingAudio = null; });
     }
 
-    async function deleteFile(buttonElement, mp3_file) {
-        if (!confirm(`Are you sure you want to delete this file?`)) {
+    function deletePreview(index) {
+        if (confirm(`Are you sure you want to remove this preview?`)) {
+            previewLibrary.splice(index, 1);
+            renderPreviewLibrary();
+        }
+    }
+
+    function downloadPreview(index) {
+        const item = previewLibrary[index];
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(item.blob);
+        link.download = `${item.metadata.title}.mp3`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        showToast("✅ Download started!", "success");
+    }
+
+    async function fetchVideoInfo() {
+        const urlInput = document.getElementById("urlInput");
+        const url = urlInput.value.trim();
+        const detailsContainer = document.getElementById("detailsContainer");
+        const skeletonLoader = document.getElementById("skeletonLoader");
+        const detailsContent = document.getElementById("detailsContent");
+
+        if (!url) {
+            showToast("⚠️ Please paste a valid YouTube URL.", "error");
             return;
         }
+        
+        showToast("⏳ Fetching video details...");
+        detailsContent.style.display = 'none';
+        skeletonLoader.style.display = 'flex';
+        detailsContainer.style.display = 'flex';
+        
         try {
-            const response = await fetch('/delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mp3_file: mp3_file })
+            const response = await fetch('/get-info', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url })
             });
-            if (!response.ok) {
-                throw new Error("Server failed to delete the file.");
-            }
-            buttonElement.closest('.download-item').remove();
-            if (document.getElementById('downloadsList').children.length === 0) {
-                document.getElementById('downloadsList').innerHTML = '<p>No downloaded files yet.</p>';
-            }
-        } catch (error) {
-            alert("Error: " + error.message);
+            if (!response.ok) throw new Error("Failed to fetch video info.");
+
+            const data = await response.json();
+            currentVideoData = data;
+
+            document.getElementById('thumbnail').src = data.thumbnail;
+            document.getElementById('videoTitle').textContent = data.title;
+            document.getElementById('videoArtist').textContent = data.artist;
+
+            const qualityButtonsContainer = document.getElementById('qualityButtons');
+            qualityButtonsContainer.innerHTML = '';
+
+            data.audio_formats.forEach((format, index) => {
+                if (index === 0) selectedFormatId = format.format_id;
+                const button = document.createElement('button');
+                button.className = `quality-button ${index === 0 ? 'selected' : ''}`;
+                button.dataset.formatId = format.format_id;
+                button.textContent = `${format.quality} (${format.ext}) - ${format.size}`;
+                button.onclick = () => selectQuality(button);
+                qualityButtonsContainer.appendChild(button);
+            });
+
+            skeletonLoader.style.display = 'none';
+            detailsContent.style.display = 'flex';
+        } catch (err) {
+            showToast("❌ Error: " + err.message, "error");
+            detailsContainer.style.display = 'none';
         }
     }
-    
-    async function fetchVideoInfo() {
-      const urlInput = document.getElementById("urlInput");
-      const url = urlInput.value.trim();
-      const detailsContainer = document.getElementById("detailsContainer");
 
-      if (!url) {
-        showToast("⚠️ Please paste a valid YouTube URL.", "error");
-        return;
-      }
-      
-      detailsContainer.style.display = 'none';
-      showToast("⏳ Fetching video details...");
-
-      try {
-        const response = await fetch('/get-info', {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url })
-        });
-        if (!response.ok) throw new Error("Failed to fetch video info.");
-
-        const data = await response.json();
-        currentVideoData = data;
-        
-        document.getElementById('thumbnail').src = data.thumbnail;
-        document.getElementById('videoTitle').textContent = data.title;
-        document.getElementById('videoArtist').textContent = data.artist;
-
-        const qualityButtonsContainer = document.getElementById('qualityButtons');
-        qualityButtonsContainer.innerHTML = ''; // Clear previous buttons
-
-        data.audio_formats.forEach((format, index) => {
-            if (index === 0) selectedFormatId = format.format_id;
-            
-            const button = document.createElement('button');
-            button.className = `quality-button ${index === 0 ? 'selected' : ''}`;
-            button.dataset.formatId = format.format_id;
-            button.textContent = `${format.quality} (${format.ext})`;
-            button.onclick = () => selectQuality(button);
-            
-            qualityButtonsContainer.appendChild(button);
-        });
-        
-        detailsContainer.style.display = "flex";
-
-      } catch (err) {
-        showToast("❌ Error: " + err.message, "error");
-      }
-    }
-    
     function selectQuality(buttonElement) {
         const buttons = document.querySelectorAll('.quality-button');
         buttons.forEach(btn => btn.classList.remove('selected'));
         buttonElement.classList.add('selected');
         selectedFormatId = buttonElement.dataset.formatId;
     }
+async function startPreview() {
+    const url = document.getElementById("urlInput").value.trim();
+    const previewButton = document.getElementById('previewButton');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const detailsContainer = document.getElementById('detailsContainer');
+    const detailsContent = document.getElementById('detailsContent');
 
-    async function startDownload() {
-        const url = document.getElementById("urlInput").value.trim();
-        const downloadButton = document.getElementById('downloadButton');
-        const detailsContainer = document.getElementById('detailsContainer');
-
-        if (!url || !selectedFormatId) {
-            showToast("⚠️ Could not start download. Please select a quality.", "error");
-            return;
-        }
-
-        downloadButton.disabled = true;
-        downloadButton.classList.add('loading');
-        downloadButton.innerHTML = `<div class="progress-inner"></div><span class="progress-text">Downloading...</span>`;
-
-        try {
-            const response = await fetch('/download', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    url: url, 
-                    format_id: selectedFormatId,
-                    metadata: {
-                        title: currentVideoData.title,
-                        artist: currentVideoData.artist,
-                        thumbnail: currentVideoData.thumbnail
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.details || "Download failed on the server.");
-            }
-            
-            const blob = await response.blob();
-            const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            const contentDisposition = response.headers.get('content-disposition');
-            let filename = "audio.mp3";
-            if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
-                if (filenameMatch.length > 1) filename = filenameMatch[1];
-            }
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            
-            showToast("✅ Download complete!", "success");
-            window.onload();
-            downloadButton.innerHTML = 'Download';
-            document.getElementById("urlInput").value = "";
-            detailsContainer.style.display = 'none';
-
-        } catch (err) {
-            showToast("❌ Error: " + err.message, "error");
-            downloadButton.disabled = false;
-            downloadButton.classList.remove('loading');
-            downloadButton.innerHTML = 'Download';
-        }
+    if (!url || !selectedFormatId) {
+        showToast("⚠️ Could not start preview. Please select a quality.", "error");
+        return;
     }
+
+    previewButton.disabled = true;
+    previewButton.innerHTML = `Loading...`;
+    progressContainer.style.display = 'block';
+    progressFill.style.width = '0%';
+
+    // Add fade-out class if visible, before starting the progress
+    detailsContainer.classList.remove('fade-out');
+    detailsContainer.classList.add('fade-in');
+    detailsContainer.style.display = 'flex';
+
+    let progress = 0;
+    let increment = 0.5;
+
+    progressInterval = setInterval(() => {
+        if (progress < 95) {
+            increment = 0.5 + (progress / 100) * 2; // Accelerate over time
+            progress = Math.min(progress + increment, 95);
+            progressFill.style.width = progress + '%';
+        }
+    }, 100);
+
+    try {
+        const response = await fetch('/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: url,
+                format_id: selectedFormatId,
+                metadata: {
+                    title: currentVideoData.title,
+                    artist: currentVideoData.artist,
+                    thumbnail: currentVideoData.thumbnail
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || "Download failed on the server.");
+        }
+
+        const blob = await response.blob();
+
+        clearInterval(progressInterval);
+        progressFill.style.width = '100%';
+
+        previewLibrary.push({
+            metadata: currentVideoData,
+            blob: blob
+        });
+
+        renderPreviewLibrary();
+        showToast("✅ Preview loaded!", "success");
+
+        document.getElementById("urlInput").value = "";
+
+        // Smoothly fade out the details container
+        detailsContainer.classList.remove('fade-in');
+        detailsContainer.classList.add('fade-out');
+        detailsContainer.addEventListener('animationend', () => {
+            detailsContainer.style.display = 'none';
+            detailsContainer.classList.remove('fade-out');
+        }, { once: true });
+
+    } catch (err) {
+        clearInterval(progressInterval);
+        showToast("❌ Error: " + err.message, "error");
+    } finally {
+        previewButton.disabled = false;
+        previewButton.innerHTML = 'Preview';
+        progressContainer.style.display = 'none';
+    }
+}
   </script>
 </body>
 </html>
